@@ -8,8 +8,8 @@ byteStack=[]
 romBytes  = []
 addedBytes = 0
 fillerByte = b'\x00'
-pic_width=0
-pic_height=0
+pic_width=1
+pic_height=1
 
 def addPixel(byteArray):
     global pixels,addedBytes,fillerByte
@@ -37,7 +37,7 @@ def addPixel(byteArray):
     ])
 
 def convertRomToPng(romName):
-    global rippedBytes
+    global rippedBytes,pic_height,pic_width
     with open(romName, "rb", buffering=0) as f:
         idx = 0
         byte = True
@@ -50,11 +50,8 @@ def convertRomToPng(romName):
             addPixel(byte)
             idx+=3
 
-        pic_width=1
-        pic_height=len(pixels)
-        #to do later -- in case we have uneven roms!
-        #while(pic_width*pic_height < len(pixels)):
-        #    pic_height+=1
+        pic_width = math.ceil(math.sqrt(len(pixels)))
+        pic_height = math.ceil(len(pixels)/pic_width)
         print("Total[%d]=/3[%d]=width[%d]=height[%d]=added[%d]" % (
             idx,
             len(pixels),
@@ -65,12 +62,18 @@ def convertRomToPng(romName):
         #
         renderImg = Image.new('RGB', (pic_width, pic_height), color=(0, 0, 0))
         pCount = 0
+        printError=True
         for r in range(pic_width):
             for c in range(pic_height):
-                renderImg.putpixel((r,c), (pixels[pCount][0],pixels[pCount][1],pixels[pCount][2]))
-                pCount+=1
-        #insert our added pixel data!
-        #renderImg.putpixel((pic_width-1,pic_height), (addedBytes,00, 00))
+                try:
+                    renderImg.putpixel((r,c), (pixels[pCount][0],pixels[pCount][1],pixels[pCount][2]))
+                    pCount+=1
+                except IndexError:
+                    if printError:
+                        print("Added some extra pixels to account for [%d] bytes"%(addedBytes))
+                        printError=False
+            #insert our added pixel data!
+            #renderImg.putpixel((pic_width-1,pic_height), (addedBytes,00, 00))
         renderImg.save(romName.replace(".nes", ".png"))
 
 def writeItself(romName):
@@ -107,14 +110,12 @@ def convertPngToRom(romName):
     bytesToSubtract = rgb_im.getpixel((height-1,width-1))[0]
     bytesToAllow    = (width*(height-1)*3)
     bytesToAllow   -= bytesToSubtract
-    #bytesToAllow   -= width
     print("Was:[%d] Subtracting:[%d] Now: [%d]" % (
         (width * height * 3),
         bytesToSubtract,
         bytesToAllow
     ))
     idx=0
-    printFirstError=True
     for h in range(height):
         for w in range(width):
             r, g, b = rgb_im.getpixel((h, w))
@@ -138,5 +139,14 @@ def convertPngToRom(romName):
 
 if __name__ == '__main__':
    # writeItself("./Kickle Cubicle (USA).nes")
-    convertRomToPng("./Kickle Cubicle (USA).nes")
-    convertPngToRom("./Kickle Cubicle (USA).nes")
+    try:
+        fileToWorkFix=sys.argv[1]
+        print(fileToWorkFix)
+        if(fileToWorkFix[-3:] == "nes"):
+            convertRomToPng(fileToWorkFix)
+        elif(fileToWorkFix[-3:] == "png"):
+            convertPngToRom(fileToWorkFix)
+        else:
+            print("Not sure what to do with filetype [%s]" % fileToWorkFix[-3])
+    except IndexError:
+        print("Did not pass a file to work on")
