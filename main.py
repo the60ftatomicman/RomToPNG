@@ -104,7 +104,7 @@ def writeItself(romName):
 
 def convertPngToRom(romName):
     global romBytes,rippedBytes
-    im = Image.open(romName.replace(".nes", ".png"))
+    im = Image.open(romName)
     rgb_im = im.convert('RGB')
     height, width = rgb_im.size
     bytesToSubtract = rgb_im.getpixel((height-1,width-1))[0]
@@ -132,7 +132,7 @@ def convertPngToRom(romName):
             romBytes.append(gbyte)
             romBytes.append(bbyte)
             idx+=3
-    f = open(romName.replace(".nes", "-pic.nes"), "wb")
+    f = open(romName.replace(".png", "-pic.nes"), "wb")
     f.write(b''.join(romBytes))
     f.close()
 
